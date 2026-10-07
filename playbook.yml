@@ -1,0 +1,6 @@
+---
+- name: Deploy Traefik Starter Kit Stack
+  hosts: all
+  become: true
+  roles:
+    - role: traefik
