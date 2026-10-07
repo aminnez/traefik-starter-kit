@@ -65,3 +65,15 @@ experimental:
 {% endif %}
 log:
   level: "{{ traefik_log_level | default('INFO') }}"
+
+{% if traefik_access_log_enabled | default(false) %}
+accessLog:
+  format: json
+{% endif %}
+
+{% if traefik_metrics_prometheus_enabled | default(false) %}
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+{% endif %}

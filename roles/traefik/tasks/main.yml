@@ -86,3 +86,13 @@
     chdir: "{{ traefik_install_dir }}"
   register: compose_up_result
   changed_when: "'Started' in compose_up_result.stdout or 'Created' in compose_up_result.stdout"
+
+- name: Wait for Traefik to respond on HTTP port
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:80"
+    status_code: [200, 301, 302, 404]
+    follow_redirects: none
+  register: traefik_health
+  until: traefik_health.status in [200, 301, 302, 404]
+  retries: 12
+  delay: 2

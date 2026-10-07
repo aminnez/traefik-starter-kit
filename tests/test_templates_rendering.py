@@ -256,3 +256,19 @@ def test_render_traefik_yml_entrypoint_security_headers():
     assert "sec-headers@file" in rendered
 
 
+def test_render_traefik_yml_observability_enabled():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("traefik.yml.j2")
+    rendered = template.render(
+        traefik_network_name="traefik-public",
+        traefik_acme_email="admin@example.com",
+        traefik_access_log_enabled=True,
+        traefik_metrics_prometheus_enabled=True
+    )
+    assert "accessLog:" in rendered
+    assert "format: json" in rendered or 'format: "json"' in rendered
+    assert "metrics:" in rendered
+    assert "prometheus:" in rendered
+
+
+

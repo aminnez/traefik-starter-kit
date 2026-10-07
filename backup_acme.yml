@@ -1,0 +1,61 @@
+---
+- name: Backup or Restore Traefik ACME Certificates
+  hosts: all
+  become: true
+  vars:
+    traefik_install_dir: "/opt/traefik"
+    local_backup_dir: "backups"
+  tasks:
+    - name: Ensure local backup directory exists
+      ansible.builtin.file:
+        path: "{{ local_backup_dir }}"
+        state: directory
+        mode: '0700'
+      delegate_to: localhost
+      become: false
+      when: restore_file is not defined
+
+    - name: Backup mode - Fetch remote acme.json to local backups
+      ansible.builtin.fetch:
+        src: "{{ traefik_install_dir }}/acme/acme.json"
+        dest: "{{ local_backup_dir }}/acme-{{ inventory_hostname }}-{{ ansible_date_time.iso8601_basic_short | default(lookup('pipe', 'date +%Y%m%d_%H%M%S')) }}.json"
+        flat: true
+      register: acme_backup_result
+      when: restore_file is not defined
+
+    - name: Ensure local backup file has strict permissions (0600)
+      ansible.builtin.file:
+        path: "{{ acme_backup_result.dest }}"
+        mode: '0600'
+      delegate_to: localhost
+      become: false
+      when: restore_file is not defined and acme_backup_result.dest is defined
+
+    - name: Restore mode - Verify local restore file exists
+      ansible.builtin.stat:
+        path: "{{ restore_file }}"
+      delegate_to: localhost
+      become: false
+      register: local_restore_stat
+      when: restore_file is defined
+
+    - name: Restore mode - Validate local restore file presence
+      ansible.builtin.assert:
+        that:
+          - local_restore_stat.stat.exists
+        fail_msg: "Specified restore_file '{{ restore_file }}' does not exist on local machine!"
+      when: restore_file is defined
+
+    - name: Restore mode - Copy local backup to remote acme.json
+      ansible.builtin.copy:
+        src: "{{ restore_file }}"
+        dest: "{{ traefik_install_dir }}/acme/acme.json"
+        mode: '0600'
+      when: restore_file is defined
+      notify: Restart Traefik container
+
+  handlers:
+    - name: Restart Traefik container
+      ansible.builtin.command:
+        cmd: docker compose restart traefik
+        chdir: "{{ traefik_install_dir }}"

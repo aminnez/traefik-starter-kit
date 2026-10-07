@@ -27,6 +27,10 @@ traefik_ratelimit_enabled: false
 traefik_ratelimit_average: 100
 traefik_ratelimit_burst: 50
 
+# Observability & Operations
+traefik_access_log_enabled: false
+traefik_metrics_prometheus_enabled: false
+
 # Generic Sablier Scale-to-Zero Engine & Plugin Defaults
 traefik_sablier_enabled: true
 traefik_sablier_image: "sablierapp/sablier:latest"
