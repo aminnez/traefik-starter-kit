@@ -1,11 +1,15 @@
 services:
   traefik:
-    image: "traefik:{{ traefik_image_tag | default('v3.1') }}"
+    image: "traefik:{{ traefik_image_tag | default('v3') }}"
     container_name: traefik
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+{% if traefik_docker_api_version is defined %}
+    environment:
+      - DOCKER_API_VERSION={{ traefik_docker_api_version }}
+{% endif %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - {{ traefik_install_dir }}/traefik.yml:/etc/traefik/traefik.yml:ro

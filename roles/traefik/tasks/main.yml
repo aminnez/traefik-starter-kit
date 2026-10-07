@@ -25,7 +25,7 @@
 
 - name: Generate dashboard auth password hash
   ansible.builtin.set_fact:
-    traefik_dashboard_auth_hash: "{{ traefik_dashboard_password | password_hash('apr1_crypt') }}"
+    traefik_dashboard_auth_hash: "{{ traefik_dashboard_password | password_hash('blowfish') }}"
   when: traefik_dashboard_auth_hash is not defined
 
 - name: Deploy traefik.yml static configuration
