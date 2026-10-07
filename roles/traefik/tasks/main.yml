@@ -73,6 +73,13 @@
     mode: '0644'
   notify: Restart traefik stack
 
+- name: Deploy dynamic middlewares configuration
+  ansible.builtin.template:
+    src: dynamic/middlewares.yml.j2
+    dest: "{{ traefik_install_dir }}/dynamic/middlewares.yml"
+    mode: '0644'
+  notify: Restart traefik stack
+
 - name: Deploy and start Traefik container stack
   ansible.builtin.command:
     cmd: docker compose up -d --remove-orphans

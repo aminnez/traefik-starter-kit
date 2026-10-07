@@ -16,12 +16,33 @@ services:
 {% endif %}
 {% endif %}
     volumes:
+{% if not traefik_socket_proxy_enabled | default(false) %}
       - /var/run/docker.sock:/var/run/docker.sock:ro
+{% endif %}
       - {{ traefik_install_dir }}/traefik.yml:/etc/traefik/traefik.yml:ro
       - {{ traefik_install_dir }}/acme:/etc/traefik/acme:rw
       - {{ traefik_install_dir }}/dynamic:/etc/traefik/dynamic:ro
     networks:
       - {{ traefik_network_name }}
+
+{% if traefik_socket_proxy_enabled | default(false) %}
+  docker-proxy:
+    image: "{{ traefik_socket_proxy_image | default('tecnativa/docker-socket-proxy:latest') }}"
+    container_name: traefik-docker-proxy
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - SERVICES=1
+      - NETWORKS=1
+      - TASKS=1
+      - POST=0
+      - DELETE=0
+      - PUT=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - {{ traefik_network_name }}
+{% endif %}
 
 {% if traefik_sablier_enabled | default(false) %}
   sablier:

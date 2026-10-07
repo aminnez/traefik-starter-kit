@@ -1,0 +1,21 @@
+http:
+  middlewares:
+{% if traefik_security_headers_enabled | default(true) %}
+    sec-headers:
+      headers:
+        sslRedirect: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        frameDeny: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+{% endif %}
+{% if traefik_ratelimit_enabled | default(false) %}
+    rate-limit:
+      rateLimit:
+        average: {{ traefik_ratelimit_average | default(100) }}
+        burst: {{ traefik_ratelimit_burst | default(50) }}
+{% endif %}

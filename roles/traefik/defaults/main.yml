@@ -19,6 +19,14 @@ traefik_acme_dns_resolvers:
   - "8.8.8.8:53"
 traefik_acme_wildcard_enabled: false
 
+# Optional Security Hardening (Socket Proxy & Dynamic Middlewares)
+traefik_socket_proxy_enabled: false
+traefik_socket_proxy_image: "tecnativa/docker-socket-proxy:latest"
+traefik_security_headers_enabled: true
+traefik_ratelimit_enabled: false
+traefik_ratelimit_average: 100
+traefik_ratelimit_burst: 50
+
 # Generic Sablier Scale-to-Zero Engine & Plugin Defaults
 traefik_sablier_enabled: true
 traefik_sablier_image: "sablierapp/sablier:latest"

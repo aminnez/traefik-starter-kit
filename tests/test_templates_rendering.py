@@ -183,3 +183,76 @@ def test_render_docker_compose_dns_env_vars():
     )
     assert "CF_DNS_API_TOKEN=cf-secret-token-12345" in rendered or "CF_DNS_API_TOKEN: cf-secret-token-12345" in rendered
 
+
+def test_render_docker_compose_socket_proxy_enabled():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("docker-compose.yml.j2")
+    rendered = template.render(
+        traefik_image_tag="v3.1",
+        traefik_install_dir="/opt/traefik",
+        traefik_network_name="traefik-public",
+        traefik_socket_proxy_enabled=True,
+        traefik_socket_proxy_image="tecnativa/docker-socket-proxy:latest",
+        traefik_deploy_whoami=False,
+        traefik_sablier_enabled=False
+    )
+    assert "docker-proxy:" in rendered
+    assert "tecnativa/docker-socket-proxy:latest" in rendered
+    assert "CONTAINERS=1" in rendered
+    assert "- /var/run/docker.sock:/var/run/docker.sock:ro" in rendered
+    # Traefik itself must not mount the docker socket when proxy is enabled
+    traefik_section = rendered.split("docker-proxy:")[0]
+    assert "- /var/run/docker.sock:/var/run/docker.sock" not in traefik_section
+
+
+def test_render_traefik_yml_socket_proxy_endpoint():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("traefik.yml.j2")
+    
+    # Test proxy enabled
+    rendered_enabled = template.render(
+        traefik_network_name="traefik-public",
+        traefik_acme_email="admin@example.com",
+        traefik_socket_proxy_enabled=True
+    )
+    assert 'endpoint: "tcp://docker-proxy:2375"' in rendered_enabled
+    
+    # Test proxy disabled
+    rendered_disabled = template.render(
+        traefik_network_name="traefik-public",
+        traefik_acme_email="admin@example.com",
+        traefik_socket_proxy_enabled=False
+    )
+    assert 'endpoint: "unix:///var/run/docker.sock"' in rendered_disabled
+
+
+def test_render_dynamic_middlewares_security_headers():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("dynamic/middlewares.yml.j2")
+    rendered = template.render(
+        traefik_security_headers_enabled=True,
+        traefik_ratelimit_enabled=True,
+        traefik_ratelimit_average=100,
+        traefik_ratelimit_burst=50
+    )
+    assert "sec-headers:" in rendered
+    assert "stsSeconds: 31536000" in rendered
+    assert "contentTypeNosniff: true" in rendered
+    assert "frameDeny: true" in rendered
+    assert "rate-limit:" in rendered
+    assert "average: 100" in rendered
+    assert "burst: 50" in rendered
+
+
+def test_render_traefik_yml_entrypoint_security_headers():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("traefik.yml.j2")
+    rendered = template.render(
+        traefik_network_name="traefik-public",
+        traefik_acme_email="admin@example.com",
+        traefik_security_headers_enabled=True
+    )
+    assert "middlewares:" in rendered
+    assert "sec-headers@file" in rendered
+
+

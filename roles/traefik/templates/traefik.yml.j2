@@ -4,7 +4,7 @@ api:
 
 providers:
   docker:
-    endpoint: "unix:///var/run/docker.sock"
+    endpoint: "{{ 'tcp://docker-proxy:2375' if traefik_socket_proxy_enabled | default(false) else 'unix:///var/run/docker.sock' }}"
     watch: true
     exposedByDefault: false
     network: "{{ traefik_network_name }}"
@@ -25,6 +25,10 @@ entryPoints:
   websecure:
     address: ":443"
     http:
+{% if traefik_security_headers_enabled | default(false) %}
+      middlewares:
+        - "sec-headers@file"
+{% endif %}
       tls:
         certResolver: myresolver
 {% if traefik_acme_wildcard_enabled | default(false) %}
