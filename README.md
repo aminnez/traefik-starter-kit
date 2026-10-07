@@ -17,15 +17,19 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 ## Directory Structure
 
 ```text
+├── .env.example                         # Example environment file template
 ├── ansible.cfg                          # Configured for dynamic ~/.ssh/config inventory
 ├── ssh_inventory.py                     # Dynamic inventory parsing local ~/.ssh/config
 ├── inventory/
 │   ├── hosts.ini                        # Fallback static inventory
 │   └── group_vars/
-│       └── all.yml                      # Central configuration variables
+│       ├── all.yml                      # Dynamic variable resolution (Vault / .env / shell)
+│       └── vault.yml                    # (Optional) Encrypted secrets via Ansible Vault
 ├── playbook.yml                         # Main deployment playbook
 ├── roles/
 │   └── traefik/                         # Core Traefik deployment role
+│       ├── defaults/main.yml            # Default infrastructure & service variables
+│       └── tasks/main.yml               # Validation & provisioning tasks
 └── examples/
     ├── hello-service/                   # Minimal example container stack
     └── README.md                        # Guide for adding new containers to the lab
@@ -59,7 +63,7 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 
 ### 1. Set Up Python Virtual Environment (Recommended)
 
-To avoid PEP 668 package conflicts on modern Linux systems, use a dedicated virtual environment for Ansible and required dependencies (e.g. `passlib` for `apr1_crypt` htpasswd hashing):
+To avoid PEP 668 package conflicts on modern Linux systems, use a dedicated virtual environment for Ansible and required dependencies (e.g. `passlib` and `bcrypt` for blowfish/bcrypt password hashing):
 
 ```bash
 # Create and activate virtual environment
@@ -72,25 +76,81 @@ pip install ansible passlib
 ```
 
 ### 2. Configure Variables
-Edit `inventory/group_vars/all.yml` with your domain and desired credentials:
 
-```yaml
-traefik_base_domain: "yourdomain.com"
-traefik_acme_email: "admin@yourdomain.com"
+Variables are dynamically resolved from **Ansible Vault**, an **Environment file (`.env`)**, or **Shell/CI Environment variables**. All infrastructure defaults (such as `/opt/traefik`, `traefik-public` network, and container image tags) are pre-configured in `roles/traefik/defaults/main.yml`.
 
-traefik_dashboard_subdomain: "traefik"      # Accessible at traefik.yourdomain.com
-traefik_dashboard_user: "admin"
-traefik_dashboard_password: "YourSecretPassword!"
+Choose whichever configuration method fits your workflow:
 
-traefik_deploy_whoami: true
-traefik_whoami_subdomain: "whoami"          # Accessible at whoami.yourdomain.com
-```
+#### Option A: Using an Environment File (`.env`) or Environment Variables (Simplest / CI-Friendly)
+
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Open `.env` and configure your domain, email, and password:
+   ```ini
+   TRAEFIK_BASE_DOMAIN=yourdomain.com
+   TRAEFIK_ACME_EMAIL=admin@yourdomain.com
+   TRAEFIK_DASHBOARD_USER=admin
+   TRAEFIK_DASHBOARD_PASSWORD=YourStrongPasswordHere!
+   ```
+
+   *(Alternatively, export them directly in your shell or CI/CD environment without a file: `export TRAEFIK_BASE_DOMAIN=yourdomain.com`, etc.)*
+
+3. Deploy:
+   ```bash
+   ansible-playbook -l myserver playbook.yml
+   ```
+
+---
+
+#### Option B: Using Ansible Vault (Encrypted & Team-Friendly)
+
+If you prefer encrypting secrets in Git or sharing encrypted credentials across a team:
+
+1. Create an encrypted `vault.yml` (in the project root or in `inventory/group_vars/vault.yml`):
+   ```bash
+   ansible-vault create vault.yml
+   ```
+   *(Enter a master password when prompted).*
+
+2. Add your required variables into `vault.yml`:
+   ```yaml
+   ---
+   traefik_base_domain: "yourdomain.com"
+   traefik_acme_email: "admin@yourdomain.com"
+   traefik_dashboard_user: "admin"
+   traefik_dashboard_password: "YourStrongPasswordHere!"
+   ```
+   *(You can also use prefixed variables like `vault_traefik_dashboard_password`)*.
+
+3. Deploy by passing the vault password:
+   ```bash
+   ansible-playbook -l myserver playbook.yml --ask-vault-pass
+   ```
+
+   **Tip (Password File)**: To avoid typing the vault password on every run:
+   ```bash
+   echo "your-vault-password" > .vault_password
+   chmod 600 .vault_password
+   ```
+   Uncomment `# vault_password_file = .vault_password` in `ansible.cfg`, and then simply run:
+   ```bash
+   ansible-playbook -l myserver playbook.yml
+   ```
+
+---
 
 ### 3. Deploy to Your Server
 Run the playbook targeting your SSH host:
 
 ```bash
+# When using .env or shell environment variables:
 ansible-playbook -l myserver playbook.yml
+
+# When using Ansible Vault:
+ansible-playbook -l myserver playbook.yml --ask-vault-pass
 ```
 
 *(Or target a static host using `-i inventory/hosts.ini`)*.
