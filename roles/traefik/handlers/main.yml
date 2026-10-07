@@ -1,0 +1,5 @@
+---
+- name: Restart traefik stack
+  ansible.builtin.command:
+    cmd: docker compose down && docker compose up -d
+    chdir: "{{ traefik_install_dir }}"

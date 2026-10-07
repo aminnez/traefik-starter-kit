@@ -1,0 +1,17 @@
+---
+# Default variables for roles/traefik
+
+traefik_base_domain: "example.com"
+traefik_acme_email: "admin@example.com"
+
+traefik_dashboard_subdomain: "traefik"
+traefik_dashboard_user: "admin"
+traefik_dashboard_password: "ChangeMeInVault!"
+
+traefik_install_dir: "/opt/traefik"
+traefik_network_name: "traefik-public"
+traefik_image_tag: "v3.1"
+traefik_log_level: "INFO"
+
+traefik_deploy_whoami: true
+traefik_whoami_subdomain: "whoami"
