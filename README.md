@@ -50,12 +50,28 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
          User root
          IdentityFile ~/.ssh/id_ed25519
      ```
+4. **Local Control Machine**:
+   - Python 3.10+ installed.
 
 ---
 
 ## Quickstart
 
-### 1. Configure Variables
+### 1. Set Up Python Virtual Environment (Recommended)
+
+To avoid PEP 668 package conflicts on modern Linux systems, use a dedicated virtual environment for Ansible and required dependencies (e.g. `passlib` for `apr1_crypt` htpasswd hashing):
+
+```bash
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install Ansible and dependencies
+pip install --upgrade pip
+pip install ansible passlib
+```
+
+### 2. Configure Variables
 Edit `inventory/group_vars/all.yml` with your domain and desired credentials:
 
 ```yaml
@@ -70,7 +86,7 @@ traefik_deploy_whoami: true
 traefik_whoami_subdomain: "whoami"          # Accessible at whoami.yourdomain.com
 ```
 
-### 2. Deploy to Your Server
+### 3. Deploy to Your Server
 Run the playbook targeting your SSH host:
 
 ```bash
@@ -79,7 +95,7 @@ ansible-playbook -l myserver playbook.yml
 
 *(Or target a static host using `-i inventory/hosts.ini`)*.
 
-### 3. Verify Deployment
+### 4. Verify Deployment
 Once the playbook completes:
 - **Test Routing & SSL**: Visit `https://whoami.yourdomain.com` in your browser. You should see a valid Let's Encrypt certificate and request headers.
 - **Access Dashboard**: Visit `https://traefik.yourdomain.com` and log in with your configured username and password.
