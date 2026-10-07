@@ -1,4 +1,17 @@
 ---
+- name: Validate required configuration variables
+  ansible.builtin.assert:
+    that:
+      - traefik_base_domain is defined and (traefik_base_domain | length > 0)
+      - traefik_acme_email is defined and (traefik_acme_email | length > 0)
+      - traefik_dashboard_password is defined and (traefik_dashboard_password | length > 0)
+    fail_msg: >
+      Required configuration variables are missing!
+      Please provide them via an environment file (.env), Ansible Vault (vault.yml),
+      or system environment variables (TRAEFIK_BASE_DOMAIN, TRAEFIK_ACME_EMAIL, TRAEFIK_DASHBOARD_PASSWORD).
+      See README.md for details.
+    quiet: true
+
 - name: Ensure Traefik installation and acme directories exist
   ansible.builtin.file:
     path: "{{ item }}"
