@@ -16,16 +16,20 @@ services:
 {% endif %}
 {% endif %}
     volumes:
-{% if not traefik_socket_proxy_enabled | default(false) %}
+{% if not traefik_socket_proxy_enabled | default(true) %}
       - /var/run/docker.sock:/var/run/docker.sock:ro
 {% endif %}
       - {{ traefik_install_dir }}/traefik.yml:/etc/traefik/traefik.yml:ro
       - {{ traefik_install_dir }}/acme:/etc/traefik/acme:rw
       - {{ traefik_install_dir }}/dynamic:/etc/traefik/dynamic:ro
+{% if traefik_socket_proxy_enabled | default(true) %}
+    depends_on:
+      - docker-proxy
+{% endif %}
     networks:
       - {{ traefik_network_name }}
 
-{% if traefik_socket_proxy_enabled | default(false) %}
+{% if traefik_socket_proxy_enabled | default(true) %}
   docker-proxy:
     image: "{{ traefik_socket_proxy_image | default('tecnativa/docker-socket-proxy:latest') }}"
     container_name: traefik-docker-proxy

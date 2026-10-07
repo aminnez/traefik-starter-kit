@@ -243,32 +243,27 @@ TRAEFIK_ACME_WILDCARD_ENABLED=true
 
 ---
 
-## Optional Security Hardening
+## Built-in Security Hardening (Secure by Default)
 
 ### 1. Docker Socket Proxy
-Exposing the raw `/var/run/docker.sock` to Traefik gives it container root privileges. You can isolate Traefik using an optional read-only socket proxy container (`tecnativa/docker-socket-proxy`):
+Exposing the raw `/var/run/docker.sock` to Traefik gives it container root privileges. This starter kit isolates Traefik **by default** using a dedicated read-only socket proxy container (`tecnativa/docker-socket-proxy`):
 
-In `roles/traefik/defaults/main.yml` (or via host/group vars):
-```yaml
-traefik_socket_proxy_enabled: true
-```
-When enabled, Traefik mounts no host sockets and accesses Docker read-only over `tcp://docker-proxy:2375`.
+- **Enabled by default**: `traefik_socket_proxy_enabled: true`
+- Traefik mounts no host sockets and accesses Docker read-only over `tcp://docker-proxy:2375`.
+- To disable and mount the Docker socket directly: set `traefik_socket_proxy_enabled: false`.
 
-### 2. Built-in Security Headers & Rate Limiting
+### 2. Preconfigured Security Headers & Rate Limiting
 Preconfigured dynamic middlewares in `/etc/traefik/dynamic/middlewares.yml`:
-- **Security Headers (`sec-headers@file`)**: Enabled by default (`traefik_security_headers_enabled: true`). Enforces HSTS (1 year, preload), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and strict referrers.
-- **Rate Limiting (`rate-limit@file`)**: Optional (`traefik_ratelimit_enabled: true`) with configurable average and burst parameters.
+- **Security Headers (`sec-headers@file`)**: Enabled by default (`traefik_security_headers_enabled: true`). Enforces HSTS (1 year, preload), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and strict referrer policy.
+- **Rate Limiting (`rate-limit@file`)**: Enabled by default (`traefik_ratelimit_enabled: true`) with configurable average (default `100` req/s) and burst (default `50`). Attach to any router using `- "traefik.http.routers.myapp.middlewares=rate-limit@file"`.
 
 ---
 
 ## Observability & Operations
 
-### Prometheus Metrics & Access Logs
-Toggle metrics or JSON access logging in your variables:
-```yaml
-traefik_access_log_enabled: true             # Emits structured JSON access logs
-traefik_metrics_prometheus_enabled: true     # Exposes Prometheus metrics on :8080/metrics
-```
+### JSON Access Logs & Prometheus Metrics
+- **JSON Access Logs**: Enabled by default (`traefik_access_log_enabled: true`) emitting structured JSON access logs to Docker stdout for easy debugging and Fail2ban/CrowdSec parsing.
+- **Prometheus Metrics**: Optional (`traefik_metrics_prometheus_enabled: true`) exposing metrics on `:8080/metrics`.
 
 ### Health Check Verification
 After deployment, Ansible automatically polls the Traefik HTTP endpoint using `ansible.builtin.uri` with retries to confirm the stack is healthy and serving traffic before completing.

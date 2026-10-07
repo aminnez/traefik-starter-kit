@@ -13,7 +13,7 @@ http:
         frameDeny: true
         referrerPolicy: "strict-origin-when-cross-origin"
 {% endif %}
-{% if traefik_ratelimit_enabled | default(false) %}
+{% if traefik_ratelimit_enabled | default(true) %}
     rate-limit:
       rateLimit:
         average: {{ traefik_ratelimit_average | default(100) }}

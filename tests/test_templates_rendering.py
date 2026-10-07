@@ -11,6 +11,8 @@ def test_render_traefik_yml():
     assert "entryPoints:" in rendered
     assert "websecure:" in rendered
     assert "httpChallenge:" in rendered
+    assert 'endpoint: "tcp://docker-proxy:2375"' in rendered
+    assert "accessLog:" in rendered
 
 def test_render_traefik_yml_with_sablier():
     env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
@@ -56,6 +58,8 @@ def test_render_docker_compose_default():
     assert "traefik:" in rendered
     assert "traefik/whoami:latest" in rendered
     assert "traefik-public:" in rendered
+    assert "docker-proxy:" in rendered
+    assert "depends_on:" in rendered
     assert "sablier:" not in rendered
     assert "sablier.enable=true" not in rendered
 
