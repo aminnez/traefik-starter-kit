@@ -5,21 +5,30 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 ## Features
 
 - **Traefik v3**: Modern, fast reverse proxy.
-- **Automated Wildcard Subdomain TLS**: Seamless Let's Encrypt certificates for any subdomain under your base domain via Cloudflare DNS + HTTP-01 challenge.
+- **Dynamic File Provider & Minimal Labels**: Dynamic configuration via `/etc/traefik/dynamic/`. Downstream containers only need 2–3 labels.
+- **ACME DNS-01 & HTTP-01 Challenges**: Automated wildcard certificates (`*.yourdomain.com`) using Cloudflare API tokens or HTTP-01 challenge.
+- **Optional Docker Socket Proxy**: Hardened isolation using `tecnativa/docker-socket-proxy` to prevent direct root Docker socket exposure.
+- **Built-in Security Headers**: Out-of-the-box HSTS, FrameDeny, Nosniff, and strict CSP policies applied automatically.
+- **Observability**: Structured JSON access logging, Prometheus metrics endpoint, and automated post-deployment URI health checks.
+- **Certificate Backup & Restore**: Standalone `backup_acme.yml` playbook for secure `acme.json` backups (mode 0600) and restoration.
 - **Dynamic SSH Inventory**: Automatically targets hosts from your local `~/.ssh/config`.
-- **Pure Docker-Label Driven**: Zero config changes to Traefik when adding new services.
 - **Traefik Dashboard**: Secure HTTPS web dashboard protected with HTTP Basic Authentication (`htpasswd`).
 - **Instant Verification**: Includes a built-in lightweight `whoami` container to verify certificates and routing immediately.
 - **Scale-to-Zero on Demand**: Integrated Sablier daemon & Traefik plugin. Automatically stops idle containers and boots them back up on incoming HTTP requests.
 - **Extensible Lab Network**: Dedicated external Docker bridge network (`traefik-public`) ready for any future container.
+- **Automated CI/CD**: Full GitHub Actions test suite and syntax validation pipeline.
 
 ---
 
 ## Directory Structure
 
 ```text
+├── .github/workflows/ci.yml             # Automated CI pipeline
 ├── .env.example                         # Example environment file template
 ├── ansible.cfg                          # Configured for dynamic ~/.ssh/config inventory
+├── backup_acme.yml                      # Certificate backup and restore playbook
+├── requirements.txt                     # Pinned Python dependencies
+├── requirements.yml                     # Ansible Galaxy collection dependencies
 ├── ssh_inventory.py                     # Dynamic inventory parsing local ~/.ssh/config
 ├── inventory/
 │   ├── hosts.ini                        # Fallback static inventory
@@ -30,7 +39,8 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 ├── roles/
 │   └── traefik/                         # Core Traefik deployment role
 │       ├── defaults/main.yml            # Default infrastructure & service variables
-│       └── tasks/main.yml               # Validation & provisioning tasks
+│       ├── tasks/main.yml               # Validation & provisioning tasks
+│       └── templates/                   # Static, compose & dynamic templates
 └── examples/
     ├── hello-service/                   # Minimal example container stack
     └── README.md                        # Guide for adding new containers to the lab
@@ -43,7 +53,7 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 1. **Remote Server**:
    - Ubuntu/Debian or Linux server with Docker and Docker Compose installed.
    - Ports `80` and `443` open in your firewall.
-2. **DNS Record (Cloudflare)**:
+2. **DNS Record**:
    - A wildcard `A` record pointing to your server's public IP:
      - `*.yourdomain.com` -> `YOUR_SERVER_IP`
      - `yourdomain.com` -> `YOUR_SERVER_IP`
@@ -62,18 +72,17 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 
 ## Quickstart
 
-### 1. Set Up Python Virtual Environment (Recommended)
-
-To avoid PEP 668 package conflicts on modern Linux systems, use a dedicated virtual environment for Ansible and required dependencies (e.g. `passlib` and `bcrypt` for blowfish/bcrypt password hashing):
+### 1. Set Up Python Virtual Environment & Install Dependencies
 
 ```bash
 # Create and activate virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install Ansible and dependencies
+# Install Ansible, Pytest, and Galaxy collections
 pip install --upgrade pip
-pip install ansible passlib
+pip install -r requirements.txt
+ansible-galaxy collection install -r requirements.yml
 ```
 
 ### 2. Configure Variables
@@ -165,7 +174,7 @@ Once the playbook completes:
 
 ## Adding New Lab Containers
 
-To add a new service (e.g. Ghost, Nextcloud, WireGuard UI), simply attach it to `traefik-public` and add Traefik labels in its `docker-compose.yml`:
+Thanks to Traefik v3 entrypoint defaults and the dynamic configuration provider, adding a new service only requires **3 labels**:
 
 ```yaml
 services:
@@ -176,15 +185,14 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.myapp.rule=Host(`myapp.yourdomain.com`)"
-      - "traefik.http.routers.myapp.entrypoints=websecure"
-      - "traefik.http.routers.myapp.tls=true"
-      - "traefik.http.routers.myapp.tls.certresolver=myresolver"
       - "traefik.http.services.myapp.loadbalancer.server.port=8080"
 
 networks:
   traefik-public:
     external: true
 ```
+
+*(TLS, certificate resolver, and security headers are handled automatically by Traefik's `websecure` entrypoint).*
 
 See [examples/README.md](examples/README.md) for full details and recipes.
 
@@ -212,3 +220,81 @@ This kit integrates [Sablier](https://github.com/sablierapp/sablier) and the [Sa
 | `traefik_whoami_sablier_session_duration` | `5m` | Session timeout for `whoami` |
 
 For instructions on configuring custom containers to scale to zero, see [examples/README.md](examples/README.md#scale-to-zero-on-demand-sablier).
+
+---
+
+## ACME DNS-01 Challenge & Wildcards
+
+By default, Traefik uses the `http` challenge (port 80). If you want **wildcard certificates** (`*.yourdomain.com`) or your server is behind a NAT/firewall without port 80 exposed, switch to the `dns` challenge:
+
+In `.env`:
+```ini
+TRAEFIK_ACME_CHALLENGE_TYPE=dns
+CF_DNS_API_TOKEN=your_cloudflare_api_token_here
+TRAEFIK_ACME_WILDCARD_ENABLED=true
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `traefik_acme_challenge_type` | `http` | Challenge type: `http` or `dns` |
+| `traefik_acme_dns_provider` | `cloudflare` | DNS provider name for lego/Traefik |
+| `traefik_acme_dns_resolvers` | `['1.1.1.1:53', '8.8.8.8:53']` | Recursive DNS resolvers for challenge validation |
+| `traefik_acme_wildcard_enabled` | `false` | Automatically configure wildcard TLS domains |
+
+---
+
+## Optional Security Hardening
+
+### 1. Docker Socket Proxy
+Exposing the raw `/var/run/docker.sock` to Traefik gives it container root privileges. You can isolate Traefik using an optional read-only socket proxy container (`tecnativa/docker-socket-proxy`):
+
+In `roles/traefik/defaults/main.yml` (or via host/group vars):
+```yaml
+traefik_socket_proxy_enabled: true
+```
+When enabled, Traefik mounts no host sockets and accesses Docker read-only over `tcp://docker-proxy:2375`.
+
+### 2. Built-in Security Headers & Rate Limiting
+Preconfigured dynamic middlewares in `/etc/traefik/dynamic/middlewares.yml`:
+- **Security Headers (`sec-headers@file`)**: Enabled by default (`traefik_security_headers_enabled: true`). Enforces HSTS (1 year, preload), `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and strict referrers.
+- **Rate Limiting (`rate-limit@file`)**: Optional (`traefik_ratelimit_enabled: true`) with configurable average and burst parameters.
+
+---
+
+## Observability & Operations
+
+### Prometheus Metrics & Access Logs
+Toggle metrics or JSON access logging in your variables:
+```yaml
+traefik_access_log_enabled: true             # Emits structured JSON access logs
+traefik_metrics_prometheus_enabled: true     # Exposes Prometheus metrics on :8080/metrics
+```
+
+### Health Check Verification
+After deployment, Ansible automatically polls the Traefik HTTP endpoint using `ansible.builtin.uri` with retries to confirm the stack is healthy and serving traffic before completing.
+
+---
+
+## Certificate Backup & Restore
+
+To protect your Let's Encrypt certificates from rate limits during server rebuilds, use the included [`backup_acme.yml`](backup_acme.yml) playbook:
+
+```bash
+# Backup acme.json to local backups/ folder (mode 0600):
+ansible-playbook -l myserver backup_acme.yml
+
+# Restore a saved backup onto the server:
+ansible-playbook -l myserver backup_acme.yml -e "restore_file=backups/acme-myserver-20261008.json"
+```
+
+---
+
+## Automated Validation & Testing
+
+Run the full local test suite (template rendering, task verification, and syntax checks):
+
+```bash
+./tests/run_all_checks.sh
+```
+All commits are also continuously tested via GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+

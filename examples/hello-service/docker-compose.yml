@@ -8,9 +8,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.hello.rule=Host(`hello.example.com`)"
-      - "traefik.http.routers.hello.entrypoints=websecure"
-      - "traefik.http.routers.hello.tls=true"
-      - "traefik.http.routers.hello.tls.certresolver=myresolver"
       - "traefik.http.services.hello.loadbalancer.server.port=80"
 
 networks:

@@ -16,7 +16,7 @@ networks:
 ```
 
 ### 2. Add Traefik labels
-Add routing and TLS labels under your service definition:
+Add minimal routing labels under your service definition (TLS and certificate resolution are applied automatically by Traefik):
 
 ```yaml
 services:
@@ -27,9 +27,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.myservice.rule=Host(`myservice.yourdomain.com`)"
-      - "traefik.http.routers.myservice.entrypoints=websecure"
-      - "traefik.http.routers.myservice.tls=true"
-      - "traefik.http.routers.myservice.tls.certresolver=myresolver"
       - "traefik.http.services.myservice.loadbalancer.server.port=PORT_CONTAINER_LISTENS_ON"
 ```
 
