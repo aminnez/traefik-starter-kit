@@ -26,6 +26,20 @@ services:
       - "traefik.http.routers.dashboard.middlewares=dash-auth"
       - "traefik.http.middlewares.dash-auth.basicauth.users={{ traefik_dashboard_user }}:{{ traefik_dashboard_auth_hash | replace('$', '$$') }}"
 
+{% if traefik_sablier_enabled | default(false) %}
+  sablier:
+    image: "{{ traefik_sablier_image | default('sablierapp/sablier:latest') }}"
+    container_name: sablier
+    restart: unless-stopped
+    command:
+      - start
+      - --provider.name=docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - {{ traefik_network_name }}
+{% endif %}
+
 {% if traefik_deploy_whoami | default(true) %}
   whoami:
     image: traefik/whoami:latest
@@ -40,6 +54,17 @@ services:
       - "traefik.http.routers.whoami.tls=true"
       - "traefik.http.routers.whoami.tls.certresolver=myresolver"
       - "traefik.http.services.whoami.loadbalancer.server.port=80"
+{% if traefik_sablier_enabled | default(false) and traefik_whoami_sablier_enabled | default(true) %}
+      - "sablier.enable=true"
+      - "sablier.group={{ traefik_whoami_sablier_group | default(traefik_whoami_subdomain) }}"
+      - "traefik.docker.allownonrunning=true"
+      - "traefik.http.middlewares.whoami-sablier.plugin.sablier.sablierUrl={{ traefik_sablier_url | default('http://sablier:10000') }}"
+      - "traefik.http.middlewares.whoami-sablier.plugin.sablier.group={{ traefik_whoami_sablier_group | default(traefik_whoami_subdomain) }}"
+      - "traefik.http.middlewares.whoami-sablier.plugin.sablier.sessionDuration={{ traefik_whoami_sablier_session_duration | default(traefik_sablier_default_session_duration | default('5m')) }}"
+      - "traefik.http.middlewares.whoami-sablier.plugin.sablier.dynamic.displayName={{ traefik_whoami_sablier_display_name | default('Whoami Service') }}"
+      - "traefik.http.middlewares.whoami-sablier.plugin.sablier.dynamic.theme={{ traefik_whoami_sablier_theme | default(traefik_sablier_default_theme | default('hacker-terminal')) }}"
+      - "traefik.http.routers.whoami.middlewares=whoami-sablier"
+{% endif %}
 {% endif %}
 
 networks:

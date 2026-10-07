@@ -11,6 +11,20 @@ traefik_network_name: "traefik-public"
 traefik_image_tag: "v3"
 traefik_log_level: "INFO"
 
-# Built-in Verification Service
+# Generic Sablier Scale-to-Zero Engine & Plugin Defaults
+traefik_sablier_enabled: true
+traefik_sablier_image: "sablierapp/sablier:latest"
+traefik_sablier_plugin_version: "v1.3.1"
+traefik_sablier_url: "http://sablier:10000"
+traefik_sablier_default_session_duration: "5m"
+traefik_sablier_default_theme: "hacker-terminal"
+traefik_sablier_default_refresh_frequency: "5s"
+
+# Built-in Verification Service (whoami sample)
 traefik_deploy_whoami: true
 traefik_whoami_subdomain: "whoami"
+traefik_whoami_sablier_enabled: true
+traefik_whoami_sablier_group: "{{ traefik_whoami_subdomain }}"
+traefik_whoami_sablier_session_duration: "{{ traefik_sablier_default_session_duration }}"
+traefik_whoami_sablier_display_name: "Whoami Service"
+traefik_whoami_sablier_theme: "{{ traefik_sablier_default_theme }}"

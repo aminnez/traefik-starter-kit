@@ -33,5 +33,13 @@ certificatesResolvers:
       httpChallenge:
         entryPoint: web
 
+{% if traefik_sablier_enabled | default(false) %}
+experimental:
+  plugins:
+    sablier:
+      moduleName: "github.com/sablierapp/sablier-traefik-plugin"
+      version: "{{ traefik_sablier_plugin_version | default('v1.3.1') }}"
+
+{% endif %}
 log:
   level: "{{ traefik_log_level | default('INFO') }}"
