@@ -1,19 +1,19 @@
 ---
-# Base Domain & ACME settings
-traefik_base_domain: "example.com"
-traefik_acme_email: "admin@example.com"
+# ==============================================================================
+# Dynamic Configuration Variables
+# Resolves in order of priority:
+#   1. Ansible Vault (e.g. vault_traefik_* or vault.yml)
+#   2. Local .env file (looked up via ansible.builtin.ini)
+#   3. System / CI Environment variables (lookup('ansible.builtin.env', ...))
+# ==============================================================================
 
-# Traefik Dashboard Credentials
-traefik_dashboard_subdomain: "traefik"
-traefik_dashboard_user: "admin"
-traefik_dashboard_password: "ChangeMeInVault!"
+# Required Base Domain & ACME settings
+traefik_base_domain: "{{ vault_traefik_base_domain | default(lookup('ansible.builtin.ini', 'TRAEFIK_BASE_DOMAIN type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_BASE_DOMAIN', default=''), true) | trim }}"
+traefik_acme_email: "{{ vault_traefik_acme_email | default(lookup('ansible.builtin.ini', 'TRAEFIK_ACME_EMAIL type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_ACME_EMAIL', default=''), true) | trim }}"
 
-# Infrastructure & Directories
-traefik_install_dir: "/opt/traefik"
-traefik_network_name: "traefik-public"
-traefik_image_tag: "v3.1"
-traefik_log_level: "INFO"
+# Traefik Dashboard Authentication
+traefik_dashboard_user: "{{ vault_traefik_dashboard_user | default(lookup('ansible.builtin.ini', 'TRAEFIK_DASHBOARD_USER type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_DASHBOARD_USER', default=''), true) | default('admin', true) | trim }}"
+traefik_dashboard_password: "{{ vault_traefik_dashboard_password | default(lookup('ansible.builtin.ini', 'TRAEFIK_DASHBOARD_PASSWORD type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_DASHBOARD_PASSWORD', default=''), true) | trim }}"
 
-# Built-in Verification Service
-traefik_deploy_whoami: true
-traefik_whoami_subdomain: "whoami"
+# Optional Subdomain Override
+traefik_dashboard_subdomain: "{{ vault_traefik_dashboard_subdomain | default(lookup('ansible.builtin.ini', 'TRAEFIK_DASHBOARD_SUBDOMAIN type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_DASHBOARD_SUBDOMAIN', default=''), true) | default('traefik', true) | trim }}"
