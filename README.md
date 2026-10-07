@@ -10,6 +10,7 @@ A modular, production-ready Traefik v3 starter kit for turning your server into 
 - **Pure Docker-Label Driven**: Zero config changes to Traefik when adding new services.
 - **Traefik Dashboard**: Secure HTTPS web dashboard protected with HTTP Basic Authentication (`htpasswd`).
 - **Instant Verification**: Includes a built-in lightweight `whoami` container to verify certificates and routing immediately.
+- **Scale-to-Zero on Demand**: Integrated Sablier daemon & Traefik plugin. Automatically stops idle containers and boots them back up on incoming HTTP requests.
 - **Extensible Lab Network**: Dedicated external Docker bridge network (`traefik-public`) ready for any future container.
 
 ---
@@ -186,3 +187,28 @@ networks:
 ```
 
 See [examples/README.md](examples/README.md) for full details and recipes.
+
+---
+
+## Scale-to-Zero on Demand (Sablier)
+
+This kit integrates [Sablier](https://github.com/sablierapp/sablier) and the [Sablier Traefik Plugin](https://github.com/sablierapp/sablier-traefik-plugin) to save CPU and RAM on resource-constrained servers.
+
+- **How it works**: Containers configured for Sablier are automatically shut down when idle. When an incoming request reaches Traefik, the Sablier plugin intercepts the traffic, displays an animated waiting screen (theme: `hacker-terminal`), signals Docker to wake up the container, and forwards the request transparently once the service is ready.
+- **Shared Gateway Endpoint**: The Sablier daemon runs on the `traefik-public` network at `http://sablier:10000`, allowing any container in your lab to scale to zero on demand.
+
+### Sablier Role Configuration (`roles/traefik/defaults/main.yml`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `traefik_sablier_enabled` | `true` | Enable/disable the Sablier daemon and Traefik plugin |
+| `traefik_sablier_image` | `sablierapp/sablier:latest` | Docker image for Sablier daemon |
+| `traefik_sablier_plugin_version` | `v1.3.1` | Version of the Traefik Sablier plugin |
+| `traefik_sablier_url` | `http://sablier:10000` | Generic internal URL for Sablier API |
+| `traefik_sablier_default_session_duration` | `5m` | Default idle timeout before containers stop |
+| `traefik_sablier_default_theme` | `hacker-terminal` | Default waiting page theme (`ghost`, `matrix`, `classic`, etc.) |
+| `traefik_whoami_sablier_enabled` | `true` | Enable scale-to-zero specifically for the built-in `whoami` sample |
+| `traefik_whoami_sablier_group` | `whoami` | Sablier group name for `whoami` |
+| `traefik_whoami_sablier_session_duration` | `5m` | Session timeout for `whoami` |
+
+For instructions on configuring custom containers to scale to zero, see [examples/README.md](examples/README.md#scale-to-zero-on-demand-sablier).
