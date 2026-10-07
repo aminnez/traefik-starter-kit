@@ -17,3 +17,8 @@ traefik_dashboard_password: "{{ vault_traefik_dashboard_password | default(looku
 
 # Optional Subdomain Override
 traefik_dashboard_subdomain: "{{ vault_traefik_dashboard_subdomain | default(lookup('ansible.builtin.ini', 'TRAEFIK_DASHBOARD_SUBDOMAIN type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_DASHBOARD_SUBDOMAIN', default=''), true) | default('traefik', true) | trim }}"
+
+# ACME DNS Challenge Settings
+traefik_acme_challenge_type: "{{ vault_traefik_acme_challenge_type | default(lookup('ansible.builtin.ini', 'TRAEFIK_ACME_CHALLENGE_TYPE type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_ACME_CHALLENGE_TYPE', default=''), true) | default('http', true) | trim }}"
+traefik_cf_dns_api_token: "{{ vault_cf_dns_api_token | default(lookup('ansible.builtin.ini', 'CF_DNS_API_TOKEN type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'CF_DNS_API_TOKEN', default=''), true) | trim }}"
+traefik_acme_wildcard_enabled: "{{ vault_traefik_acme_wildcard_enabled | default(lookup('ansible.builtin.ini', 'TRAEFIK_ACME_WILDCARD_ENABLED type=properties file=.env', errors='ignore', default=''), true) | default(lookup('ansible.builtin.env', 'TRAEFIK_ACME_WILDCARD_ENABLED', default=''), true) | default(false, true) | bool }}"

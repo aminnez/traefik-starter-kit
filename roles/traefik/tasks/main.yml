@@ -12,6 +12,16 @@
       See README.md for details.
     quiet: true
 
+- name: Validate DNS challenge variables when DNS-01 challenge is enabled
+  ansible.builtin.assert:
+    that:
+      - traefik_cf_dns_api_token is defined and (traefik_cf_dns_api_token | length > 0)
+    fail_msg: >
+      ACME DNS challenge with Cloudflare is enabled, but CF_DNS_API_TOKEN is missing!
+      Please provide CF_DNS_API_TOKEN via .env, Ansible Vault, or system environment variable.
+    quiet: true
+  when: (traefik_acme_challenge_type | default('http')) == 'dns' and (traefik_acme_dns_provider | default('cloudflare')) == 'cloudflare'
+
 - name: Ensure Traefik installation, acme, and dynamic directories exist
   ansible.builtin.file:
     path: "{{ item }}"

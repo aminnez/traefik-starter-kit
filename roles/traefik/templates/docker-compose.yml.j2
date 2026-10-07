@@ -6,9 +6,14 @@ services:
     ports:
       - "80:80"
       - "443:443"
-{% if traefik_docker_api_version is defined %}
+{% if traefik_docker_api_version is defined or ((traefik_acme_challenge_type | default('http')) == 'dns' and traefik_cf_dns_api_token is defined and (traefik_cf_dns_api_token | length > 0)) %}
     environment:
+{% if traefik_docker_api_version is defined %}
       - DOCKER_API_VERSION={{ traefik_docker_api_version }}
+{% endif %}
+{% if (traefik_acme_challenge_type | default('http')) == 'dns' and traefik_cf_dns_api_token is defined and (traefik_cf_dns_api_token | length > 0) %}
+      - CF_DNS_API_TOKEN={{ traefik_cf_dns_api_token }}
+{% endif %}
 {% endif %}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro

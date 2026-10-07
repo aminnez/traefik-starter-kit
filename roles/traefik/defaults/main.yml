@@ -11,6 +11,14 @@ traefik_network_name: "traefik-public"
 traefik_image_tag: "v3"
 traefik_log_level: "INFO"
 
+# ACME TLS & Certificate Challenge Settings
+traefik_acme_challenge_type: "http" # "http" or "dns"
+traefik_acme_dns_provider: "cloudflare"
+traefik_acme_dns_resolvers:
+  - "1.1.1.1:53"
+  - "8.8.8.8:53"
+traefik_acme_wildcard_enabled: false
+
 # Generic Sablier Scale-to-Zero Engine & Plugin Defaults
 traefik_sablier_enabled: true
 traefik_sablier_image: "sablierapp/sablier:latest"

@@ -133,3 +133,53 @@ def test_render_docker_compose_traefik_has_no_dashboard_labels():
     )
     assert "/opt/traefik/dynamic:/etc/traefik/dynamic:ro" in rendered
     assert "traefik.http.routers.dashboard" not in rendered
+
+
+def test_render_traefik_yml_dns_challenge_cloudflare():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("traefik.yml.j2")
+    rendered = template.render(
+        traefik_network_name="traefik-public",
+        traefik_acme_email="admin@example.com",
+        traefik_acme_challenge_type="dns",
+        traefik_acme_dns_provider="cloudflare",
+        traefik_acme_dns_resolvers=["1.1.1.1:53", "8.8.8.8:53"],
+        traefik_log_level="INFO"
+    )
+    assert "dnsChallenge:" in rendered
+    assert 'provider: "cloudflare"' in rendered or "provider: cloudflare" in rendered
+    assert "1.1.1.1:53" in rendered
+    assert "8.8.8.8:53" in rendered
+    assert "httpChallenge:" not in rendered
+
+
+def test_render_traefik_yml_wildcard_domains():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("traefik.yml.j2")
+    rendered = template.render(
+        traefik_network_name="traefik-public",
+        traefik_acme_email="admin@example.com",
+        traefik_acme_challenge_type="dns",
+        traefik_base_domain="example.com",
+        traefik_acme_wildcard_enabled=True,
+        traefik_log_level="INFO"
+    )
+    assert "domains:" in rendered
+    assert "main: example.com" in rendered or 'main: "example.com"' in rendered
+    assert "*.example.com" in rendered
+
+
+def test_render_docker_compose_dns_env_vars():
+    env = Environment(loader=FileSystemLoader("roles/traefik/templates"))
+    template = env.get_template("docker-compose.yml.j2")
+    rendered = template.render(
+        traefik_image_tag="v3.1",
+        traefik_install_dir="/opt/traefik",
+        traefik_network_name="traefik-public",
+        traefik_acme_challenge_type="dns",
+        traefik_cf_dns_api_token="cf-secret-token-12345",
+        traefik_deploy_whoami=False,
+        traefik_sablier_enabled=False
+    )
+    assert "CF_DNS_API_TOKEN=cf-secret-token-12345" in rendered or "CF_DNS_API_TOKEN: cf-secret-token-12345" in rendered
+

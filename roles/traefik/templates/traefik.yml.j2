@@ -27,14 +27,29 @@ entryPoints:
     http:
       tls:
         certResolver: myresolver
+{% if traefik_acme_wildcard_enabled | default(false) %}
+        domains:
+          - main: "{{ traefik_base_domain }}"
+            sans:
+              - "*.{{ traefik_base_domain }}"
+{% endif %}
 
 certificatesResolvers:
   myresolver:
     acme:
       email: "{{ traefik_acme_email }}"
       storage: "/etc/traefik/acme/acme.json"
+{% if traefik_acme_challenge_type | default('http') == 'dns' %}
+      dnsChallenge:
+        provider: "{{ traefik_acme_dns_provider | default('cloudflare') }}"
+        resolvers:
+{% for resolver in traefik_acme_dns_resolvers | default(['1.1.1.1:53', '8.8.8.8:53']) %}
+          - "{{ resolver }}"
+{% endfor %}
+{% else %}
       httpChallenge:
         entryPoint: web
+{% endif %}
 
 {% if traefik_sablier_enabled | default(false) %}
 experimental:
