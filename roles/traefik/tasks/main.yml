@@ -12,7 +12,7 @@
       See README.md for details.
     quiet: true
 
-- name: Ensure Traefik installation and acme directories exist
+- name: Ensure Traefik installation, acme, and dynamic directories exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -20,6 +20,7 @@
   loop:
     - "{{ traefik_install_dir }}"
     - "{{ traefik_install_dir }}/acme"
+    - "{{ traefik_install_dir }}/dynamic"
 
 - name: Ensure acme.json exists with strict permissions
   ansible.builtin.file:
@@ -52,6 +53,13 @@
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ traefik_install_dir }}/docker-compose.yml"
+    mode: '0644'
+  notify: Restart traefik stack
+
+- name: Deploy dynamic dashboard configuration
+  ansible.builtin.template:
+    src: dynamic/dashboard.yml.j2
+    dest: "{{ traefik_install_dir }}/dynamic/dashboard.yml"
     mode: '0644'
   notify: Restart traefik stack
 

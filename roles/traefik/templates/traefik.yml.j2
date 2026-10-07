@@ -8,6 +8,9 @@ providers:
     watch: true
     exposedByDefault: false
     network: "{{ traefik_network_name }}"
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
 
 entryPoints:
   web:

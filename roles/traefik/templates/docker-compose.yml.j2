@@ -14,17 +14,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - {{ traefik_install_dir }}/traefik.yml:/etc/traefik/traefik.yml:ro
       - {{ traefik_install_dir }}/acme:/etc/traefik/acme:rw
+      - {{ traefik_install_dir }}/dynamic:/etc/traefik/dynamic:ro
     networks:
       - {{ traefik_network_name }}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`{{ traefik_dashboard_subdomain }}.{{ traefik_base_domain }}`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.tls=true"
-      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
-      - "traefik.http.routers.dashboard.middlewares=dash-auth"
-      - "traefik.http.middlewares.dash-auth.basicauth.users={{ traefik_dashboard_user }}:{{ traefik_dashboard_auth_hash | replace('$', '$$') }}"
 
 {% if traefik_sablier_enabled | default(false) %}
   sablier:
